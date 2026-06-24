@@ -11,6 +11,7 @@ public class AudioManager : MonoBehaviour
     [Header("Background Music")]
     [SerializeField] private AudioClip menuMusic;
     [SerializeField] private AudioClip gameOverMusic;
+    [SerializeField] private AudioClip pauseMusic;
 
     [Header("Sound Effects")]
     [SerializeField] private AudioClip fruitSliceSound;
@@ -18,7 +19,6 @@ public class AudioManager : MonoBehaviour
     [SerializeField] private AudioClip bombSound;
     [SerializeField] private AudioClip smallBombSound;
     [SerializeField] private AudioClip buttonClickSound;
-    
 
     private void Awake()
     {
@@ -41,6 +41,18 @@ public class AudioManager : MonoBehaviour
         if (gameOverMusic != null)
         {
             PlayMusic(gameOverMusic);
+        }
+        else
+        {
+            PlayMusic(menuMusic);
+        }
+    }
+
+    public void PlayPauseMusic()
+    {
+        if (pauseMusic != null)
+        {
+            PlayMusic(pauseMusic);
         }
         else
         {
@@ -77,10 +89,12 @@ public class AudioManager : MonoBehaviour
     {
         PlaySound(fruitSliceSound);
     }
+
     public void PlayBladeSwing()
     {
         PlaySound(bladeSwingSound);
     }
+
     public void PlayBomb()
     {
         PlaySound(bombSound);

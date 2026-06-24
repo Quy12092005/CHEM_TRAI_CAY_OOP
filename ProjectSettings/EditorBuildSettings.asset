@@ -4,5 +4,8 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/FruitNinja_OOP.unity
+    guid: ce7d5f38ac23cd54bb22afbfc1cb4277
   m_configObjects: {}

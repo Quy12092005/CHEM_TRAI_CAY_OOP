@@ -19,6 +19,7 @@ public class GameManager : MonoBehaviour
 
     [Header("Panels")]
     [SerializeField] private GameObject startPanel;
+    [SerializeField] private GameObject pausePanel;
     [SerializeField] private GameObject gameOverPanel;
 
     [Header("Game Over UI")]
@@ -34,6 +35,7 @@ public class GameManager : MonoBehaviour
 
     private bool isStartMenu = true;
     private bool isPlaying = false;
+    private bool isPaused = false;
     private bool isGameOver = false;
 
     private Coroutine flashCoroutine;
@@ -62,26 +64,62 @@ public class GameManager : MonoBehaviour
         ShowStartMenu();
     }
 
-    private void Update()
+private void Update()
+{
+    // Màn hình Start: bấm P hoặc click chuột trái để chơi
+    if (isStartMenu)
     {
-        // Ở màn hình Start: bấm P hoặc click chuột trái để chơi
-        if (isStartMenu)
+        if (Input.GetKeyDown(KeyCode.P) || Input.GetMouseButtonDown(0))
         {
-            if (Input.GetKeyDown(KeyCode.P) || Input.GetMouseButtonDown(0))
-            {
-                PlayGame();
-            }
+            PlayGame();
         }
 
-        // Ở màn hình Game Over: bấm R hoặc click chuột trái để chơi lại
-        if (isGameOver)
-        {
-            if (Input.GetKeyDown(KeyCode.R) || Input.GetMouseButtonDown(0))
-            {
-                RestartGame();
-            }
-        }
+        return;
     }
+
+    // Màn hình Game Over: bấm R hoặc click chuột trái để chơi lại
+    if (isGameOver)
+    {
+        if (Input.GetKeyDown(KeyCode.R) || Input.GetMouseButtonDown(0))
+        {
+            RestartGame();
+        }
+
+        return;
+    }
+
+    // Màn hình Pause
+    if (isPaused)
+    {
+        Time.timeScale = 0f;
+
+        // ESC: tiếp tục chơi
+        if (Input.GetKeyDown(KeyCode.Escape))
+        {
+            ResumeGame();
+        }
+
+        // R: chơi lại từ đầu
+        if (Input.GetKeyDown(KeyCode.R))
+        {
+            RestartGame();
+        }
+
+        // Q: thoát về StartPanel
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            QuitToStartMenu();
+        }
+
+        return;
+    }
+
+    // Đang chơi: bấm ESC để tạm dừng
+    if (isPlaying && Input.GetKeyDown(KeyCode.Escape))
+    {
+        PauseGame();
+    }
+}
 
     private void ShowStartMenu()
     {
@@ -93,6 +131,7 @@ public class GameManager : MonoBehaviour
 
         isStartMenu = true;
         isPlaying = false;
+        isPaused = false;
         isGameOver = false;
 
         Time.timeScale = 1f;
@@ -118,6 +157,11 @@ public class GameManager : MonoBehaviour
             startPanel.SetActive(true);
         }
 
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
+        }
+
         if (gameOverPanel != null)
         {
             gameOverPanel.SetActive(false);
@@ -133,10 +177,12 @@ public class GameManager : MonoBehaviour
         {
             AudioManager.Instance.PlayMenuMusic();
         }
+
         if (difficultyManager != null)
         {
             difficultyManager.ResetDifficulty();
         }
+
         UpdateScoreText();
         UpdateLivesUI();
     }
@@ -151,6 +197,7 @@ public class GameManager : MonoBehaviour
 
         isStartMenu = false;
         isPlaying = true;
+        isPaused = false;
         isGameOver = false;
 
         Time.timeScale = 1f;
@@ -169,6 +216,11 @@ public class GameManager : MonoBehaviour
         if (startPanel != null)
         {
             startPanel.SetActive(false);
+        }
+
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
         }
 
         if (gameOverPanel != null)
@@ -192,10 +244,12 @@ public class GameManager : MonoBehaviour
             spawner.enabled = false;
             spawner.enabled = true;
         }
+
         if (difficultyManager != null)
         {
             difficultyManager.ResetDifficulty();
         }
+
         UpdateScoreText();
         UpdateLivesUI();
     }
@@ -219,7 +273,7 @@ public class GameManager : MonoBehaviour
 
     public void IncreaseScore(int points)
     {
-        if (!isPlaying || isGameOver)
+        if (!isPlaying || isPaused || isGameOver)
         {
             return;
         }
@@ -232,10 +286,12 @@ public class GameManager : MonoBehaviour
         }
 
         UpdateScoreText();
+
         if (difficultyManager != null)
         {
             difficultyManager.UpdateDifficultyByScore(score);
         }
+
         int hiscore = PlayerPrefs.GetInt("hiscore", 0);
 
         if (score > hiscore)
@@ -244,52 +300,9 @@ public class GameManager : MonoBehaviour
         }
     }
 
-    public void HitBigBomb()
-    {
-        if (!isPlaying || isGameOver)
-        {
-            return;
-        }
-
-        // Mạng cuối cùng: Game Over
-        if (lives <= 1)
-        {
-            lives = 0;
-            UpdateLivesUI();
-
-            Debug.Log("CHEM BOM TO O MANG CUOI -> GAME OVER");
-
-            Explode();
-            return;
-        }
-
-        // 2 mạng đầu: mất 1 tim + trừ 15 điểm + lóe màn hình lâu hơn
-        lives--;
-
-        IncreaseScore(-bigBombPenalty);
-        UpdateLivesUI();
-
-        Debug.Log("CHEM BOM TO -> MAT 1 MANG, TRU " + bigBombPenalty + " DIEM. CON LAI: " + lives);
-
-        StartFlash(0.45f);
-    }
-
-    public void HitSmallBomb(int minusPoints)
-    {
-        if (!isPlaying || isGameOver)
-        {
-            return;
-        }
-
-        IncreaseScore(-minusPoints);
-
-        Debug.Log("CHEM SMALL BOMB -> TRU " + minusPoints + " DIEM");
-
-        StartFlash(0.18f);
-    }
     public void AddLife(int amount)
     {
-        if (!isPlaying || isGameOver)
+        if (!isPlaying || isPaused || isGameOver)
         {
             return;
         }
@@ -303,7 +316,49 @@ public class GameManager : MonoBehaviour
 
         UpdateLivesUI();
 
-        Debug.Log("Hoi mang! So mang hien tai: " + lives);
+        Debug.Log("HOI MANG. SO MANG HIEN TAI: " + lives);
+    }
+
+    public void HitBigBomb()
+    {
+        if (!isPlaying || isPaused || isGameOver)
+        {
+            return;
+        }
+
+        if (lives <= 1)
+        {
+            lives = 0;
+            UpdateLivesUI();
+
+            Debug.Log("CHEM BOM TO O MANG CUOI -> GAME OVER");
+
+            Explode();
+            return;
+        }
+
+        lives--;
+
+        IncreaseScore(-bigBombPenalty);
+        UpdateLivesUI();
+
+        Debug.Log("CHEM BOM TO -> MAT 1 MANG, TRU " + bigBombPenalty + " DIEM. CON LAI: " + lives);
+
+        StartFlash(0.45f);
+    }
+
+    public void HitSmallBomb(int minusPoints)
+    {
+        if (!isPlaying || isPaused || isGameOver)
+        {
+            return;
+        }
+
+        IncreaseScore(-minusPoints);
+
+        Debug.Log("CHEM SMALL BOMB -> TRU " + minusPoints + " DIEM");
+
+        StartFlash(0.18f);
     }
 
     private void UpdateScoreText()
@@ -401,6 +456,96 @@ public class GameManager : MonoBehaviour
         flashCoroutine = null;
     }
 
+    public void PauseGame()
+    {
+        if (!isPlaying || isGameOver || isPaused)
+        {
+            return;
+        }
+
+        Debug.Log("TAM DUNG GAME");
+
+        isPaused = true;
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayButtonClick();
+            AudioManager.Instance.PlayPauseMusic();
+        }
+
+        if (blade != null)
+        {
+            blade.enabled = false;
+        }
+
+        if (spawner != null)
+        {
+            spawner.enabled = false;
+        }
+
+        if (fadeImage != null)
+        {
+            fadeImage.raycastTarget = false;
+        }
+
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(true);
+            pausePanel.transform.SetAsLastSibling();
+        }
+
+        Time.timeScale = 0f;
+    }
+
+    public void ResumeGame()
+    {
+        if (!isPaused)
+        {
+            return;
+        }
+
+        Debug.Log("TIEP TUC GAME");
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayButtonClick();
+            AudioManager.Instance.StopMusic();
+        }
+
+        isPaused = false;
+
+        Time.timeScale = 1f;
+        Time.fixedDeltaTime = 0.02f;
+
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
+        }
+
+        if (blade != null)
+        {
+            blade.enabled = true;
+        }
+
+        if (spawner != null)
+        {
+            spawner.enabled = false;
+            spawner.enabled = true;
+        }
+    }
+
+    public void QuitToStartMenu()
+    {
+        Debug.Log("QUIT VE START MENU");
+
+        if (AudioManager.Instance != null)
+        {
+            AudioManager.Instance.PlayButtonClick();
+        }
+
+        ShowStartMenu();
+    }
+
     public void Explode()
     {
         if (isGameOver)
@@ -412,12 +557,18 @@ public class GameManager : MonoBehaviour
 
         isStartMenu = false;
         isPlaying = false;
+        isPaused = false;
         isGameOver = true;
 
         if (flashCoroutine != null)
         {
             StopCoroutine(flashCoroutine);
             flashCoroutine = null;
+        }
+
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
         }
 
         if (blade != null)
@@ -475,7 +626,6 @@ public class GameManager : MonoBehaviour
 
     public void PlayGame()
     {
-        // Tránh gọi Play nhiều lần cùng lúc
         if (!isStartMenu && isPlaying)
         {
             return;
@@ -493,19 +643,69 @@ public class GameManager : MonoBehaviour
 
     public void RestartGame()
     {
-        // Chỉ restart khi đang Game Over
-        if (!isGameOver)
-        {
-            return;
-        }
+        Debug.Log("RESTART GAME");
 
         if (AudioManager.Instance != null)
         {
             AudioManager.Instance.PlayButtonClick();
+            AudioManager.Instance.StopMusic();
         }
 
-        Debug.Log("DA BAM RESTART");
+        StopAllCoroutines();
 
-        NewGame();
+        flashCoroutine = null;
+
+        isStartMenu = false;
+        isPlaying = true;
+        isPaused = false;
+        isGameOver = false;
+
+        Time.timeScale = 1f;
+        Time.fixedDeltaTime = 0.02f;
+
+        ClearScene();
+
+        score = 0;
+        lives = startingLives;
+
+        if (startPanel != null)
+        {
+            startPanel.SetActive(false);
+        }
+
+        if (pausePanel != null)
+        {
+            pausePanel.SetActive(false);
+        }
+
+        if (gameOverPanel != null)
+        {
+            gameOverPanel.SetActive(false);
+        }
+
+        if (fadeImage != null)
+        {
+            fadeImage.color = Color.clear;
+            fadeImage.raycastTarget = false;
+        }
+
+        if (blade != null)
+        {
+            blade.enabled = true;
+        }
+
+        if (spawner != null)
+        {
+            spawner.enabled = false;
+            spawner.enabled = true;
+        }
+
+        if (difficultyManager != null)
+        {
+            difficultyManager.ResetDifficulty();
+        }
+
+        UpdateScoreText();
+        UpdateLivesUI();
     }
 }
