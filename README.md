@@ -1,3 +1,7 @@
+Phiên bản Unity đề xuất
+
+Unity 2020.3 LTS.
+
 # CHEM_TRAI_CAY_OOP
 
 Đây là project game Fruit Ninja được cải tiến theo hướng lập trình hướng đối tượng OOP bằng Unity và C#.
